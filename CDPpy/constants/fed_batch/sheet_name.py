@@ -1,0 +1,5 @@
+DATA_SHEET = 'Measured Data'
+FEED_SHEET = 'Feed Concentration'
+# SEPARATE_FEED_SHEET = 'Separate Feed Data'
+POLYNOMIAL_SHEET = 'Polynomial Degree'
+PROCESSED_DATA_SHEET = 'Processed Data'

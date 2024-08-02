@@ -1,0 +1,33 @@
+# Descriptive column names
+EXPERIMENT_DATA_COLUMN = 'Experiment Data'
+FEED_VOLUME_COLUMN = 'Feed Volume (mL)'
+CONC_BEFOROE_FEED_COLUMN = 'Concentration Before Feeding'
+CONC_AFTER_FEED_COLUMN = 'Concentration After Feeding'
+MEASURED_CUMULATIVE_COLUMN = 'Calculated Cumulative Concentration'
+CUMULATIVE_CONC_COLUMN = 'Cumulative Consumption/Production'
+SP_RATE_COLUMN = 'SP. Rate Two-Point Calculation'
+SP_RATE_POLY_COLUMN = 'SP. Rate Polynomial Regression'
+SP_RATE_ROLLING_COLUMN = 'SP. Rate Rolling Window Polynomial Regression'
+
+# Experimental Data column names
+DATE_COLUMN = 'Date (MM/DD/YY H:MM:SS AM/PM)'
+CELL_LINE_COLUMN = 'Cell Line'
+ID_COLUMN = 'ID' 
+NAME_COLUMN = 'Name'
+INITIAL_VOLUME_COLUMN = 'Initial Volume (mL)'
+SAMPLE_VOLUME_COLUMN = 'Sample Volume (mL)'
+VOLUME_BEFORE_SAMPLE_COLUMN = 'Volume Before Sampling (mL)'
+VOLUME_AFTER_SAMPLE_COLUMN = 'Volume After Sampling (mL)'
+FEED_MEDIA_ADDED_COLUMN = 'Feed Media Added (mL)'
+BASE_ADDED_COLUMN = 'Base Added (mL)'
+VIABLE_CELL_COLUMN = 'Viable Cell Concentration (10^6 cells/mL)'
+DEAD_CELL_COLUMN = 'Dead Cell Concentration (10^6 cells/mL)'
+TOTAL_CELL_COLUMN = 'Total Cell Concentration (10^6 cells/mL)'
+PRODUCT_COLUMN = 'IgG (mg/L)'
+VIABILITY_COLUMN = 'Viability (%)'
+
+# Run time Column names
+RUN_TIME_DAY_COLUMN = 'Run Time (day)'
+RUN_TIME_HOUR_COLUMN = 'Run Time (hr)'
+RUN_TIME_DAY_MID_COLUMN = 'Run Time Mid (day)'
+RUN_TIME_HOUR_MID_COLUMN = 'Run Time Mid (hr)'
