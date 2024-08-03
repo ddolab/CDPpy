@@ -24,7 +24,7 @@ The package reads the data from Excel files following a fixed template. One can 
 
 ## Tutorial
 
-The Jupyter notebook `Bioprocess_data_pipeline_Python_tutorial.ipynb` provides a tutorial designed for running on Google Colab. 
+The Jupyter notebook `Package_tutorial.ipynb` provides a tutorial designed for running on Google Colab. 
 
 A PDF instruction on executing the notebook on Google Colab can be found in `Tutorial_Jupyter_notebook_instruction.pdf`.
 
