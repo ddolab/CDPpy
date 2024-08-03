@@ -16,7 +16,7 @@ coming soon.
 
 Dependencies can be found in the `environment.yml` file.
 
-To recreate the same Python conda environments. Run `conda env create -f environment.yml` in the command prompt.
+To recreate the same Python conda environments, run `conda env create -f environment.yml` in the command prompt.
 
 ## Input Excel template
 
