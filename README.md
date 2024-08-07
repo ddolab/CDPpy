@@ -3,7 +3,9 @@
 CDPpy (Cell-culture Data Pipeline Python package) is an open-source library designed to analyze fed-batch cell culture data from multiple experiments and cell lines. The package features the functions of a data processing pipeline and visualization toolbox. The processing pipeline reads raw data from Excel files following a fixed template, derives variables such as cumulative substrate consumption and various specific rates, and exports the processed dataset into an Excel file. The particular rates show changing cellular activities in culture over time, providing process optimization insights. The visualization toolbox enables users to analyze process profiles across experimental runs and cell lines, aiding in future experimental design. In this repository, we include the source code for the package, an instruction for package setup, and a Jupyter notebook that provides step-by-step guidelines for data processing and visualization using an example dataset.
 
 ## Citation
-coming soon.
+DOI: https://doi.org/10.13020/7bwf-a974 (link will be active soon)
+
+URL: https://hdl.handle.net/11299/264596
 
 ### Developer
 
