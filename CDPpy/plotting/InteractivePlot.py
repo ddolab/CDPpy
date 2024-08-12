@@ -238,12 +238,14 @@ class InteractivePlotMixin:
         options = []
         if cl_chosen==[]:
             return options
+        options.append({'label': 'Select All', 'value': 'All'})
         for cl in cl_chosen:
             #cell_line_handler = self.get_cell_line_handles(cl)
             #exp_list = list(cell_line_handler.get_experiment_handle().keys())
             exp_list = self._processed_cell_lines[cl]
             for exp in exp_list:
                 options.append({'label': f'{cl}-{exp}', 'value': f'{cl}-{exp}'})
+        #  add 'Select All' option
         return options
     
     def __toggle_output_vcc(self, n_clicks, current_children):
@@ -343,7 +345,11 @@ class InteractivePlotMixin:
         if 'vcc' in profiles:
             # Filtering by Cell Line and ID
             conc_filtered_by_cl = filter_data(conc_df, 'Cell Line', cell_line)
-            conc_filtered_by_id = filter_data(conc_filtered_by_cl, 'ID', run_ids)
+            # if 'All' is not selected
+            if 'All' not in run_ids:
+                conc_filtered_by_id = filter_data(conc_filtered_by_cl, 'ID', run_ids)
+            else:
+                conc_filtered_by_id = conc_filtered_by_cl
             
             # Filtering by VCD
             vcc_mask = conc_filtered_by_id['state']=='VCD'
@@ -369,7 +375,11 @@ class InteractivePlotMixin:
         if 'tcc' in profiles:
             # Filtering by Cell Line and ID
             conc_filtered_by_cl = filter_data(conc_df, 'Cell Line', cell_line)
-            conc_filtered_by_id = filter_data(conc_filtered_by_cl, 'ID', run_ids)
+            # if 'All' is not selected
+            if 'All' not in run_ids:
+                conc_filtered_by_id = filter_data(conc_filtered_by_cl, 'ID', run_ids)
+            else:
+                conc_filtered_by_id = conc_filtered_by_cl
 
             # Filtering by TCD
             tcc_mask = conc_filtered_by_id['state']=='TCD'
@@ -382,7 +392,11 @@ class InteractivePlotMixin:
         if 'ivcc' in profiles:
             # Filtering by Cell Line and ID
             ivcc_filtered_by_cl = filter_data(ivcc_df, 'Cell Line', cell_line)
-            ivcc_filtered_by_id = filter_data(ivcc_filtered_by_cl, 'ID', run_ids)
+            # if 'All' is not selected
+            if 'All' not in run_ids:
+                ivcc_filtered_by_id = filter_data(ivcc_filtered_by_cl, 'ID', run_ids)
+            else:
+                ivcc_filtered_by_id = ivcc_filtered_by_cl
 
             fig = px.line(ivcc_filtered_by_id, x=x_axis, y='value', title='Integral Viable Cell Concentration', color=color_2, line_dash=line_2, symbol=symbol_2)
             fig.update_yaxes(title_text=f"IVCC {ivcc_filtered_by_id['unit'].iat[0]}")
@@ -391,7 +405,11 @@ class InteractivePlotMixin:
         if 'cumulative' in profiles:
             # Filtering by Cell Line and ID
             cumulative_filtered_by_cl = filter_data(cumulative_conc_df, 'Cell Line', cell_line)
-            cumulative_filtered_by_id = filter_data(cumulative_filtered_by_cl, 'ID', run_ids)
+            # if 'All' is not selected
+            if 'All' not in run_ids:
+                cumulative_filtered_by_id = filter_data(cumulative_filtered_by_cl, 'ID', run_ids)
+            else:
+                cumulative_filtered_by_id = cumulative_filtered_by_cl
 
             fig = px.line(cumulative_filtered_by_id, x=x_axis, y='value', title='Cumulative Cell Production', color=color_3, line_dash=line_3, symbol=symbol_3)
             fig.update_yaxes(title_text=f"Cumulative Cell Production {cumulative_filtered_by_id['unit'].iat[0]}")
@@ -400,7 +418,11 @@ class InteractivePlotMixin:
         if 'growthRate' in profiles:
             # Filtering by Cell Line and ID
             growth_rate_filtered_by_cl = filter_data(growth_rate_df, 'Cell Line', cell_line)
-            growth_rate_filtered_by_id = filter_data(growth_rate_filtered_by_cl, 'ID', run_ids)
+            # if 'All' is not selected
+            if 'All' not in run_ids:
+                growth_rate_filtered_by_id = filter_data(growth_rate_filtered_by_cl, 'ID', run_ids)
+            else:
+                growth_rate_filtered_by_id = growth_rate_filtered_by_cl
 
             fig = px.line(growth_rate_filtered_by_id, x=x_axis, y='value', title='Growth Rate', color=color_4, line_dash=line_4, symbol=symbol_4)
             fig.update_yaxes(title_text=f"Growth Rate {growth_rate_filtered_by_id['unit'].iat[0]}")
@@ -443,13 +465,16 @@ class InteractivePlotMixin:
         # Filter data by species, Cell Line and ID
         conc_df = filter_data(conc_df, 'species', species)
         conc_df = filter_data(conc_df, 'Cell Line', cell_line)
-        conc_df = filter_data(conc_df, 'ID', run_ids)
+        if 'All' not in run_ids:
+            conc_df = filter_data(conc_df, 'ID', run_ids)
         cumulative_conc_df = filter_data(cumulative_conc_df, 'species', species)
         cumulative_conc_df = filter_data(cumulative_conc_df, 'Cell Line', cell_line)
-        cumulative_conc_df = filter_data(cumulative_conc_df, 'ID', run_ids)
+        if 'All' not in run_ids:
+            cumulative_conc_df = filter_data(cumulative_conc_df, 'ID', run_ids)
         sp_rate_df = filter_data(sp_rate_df, 'species', species)
         sp_rate_df = filter_data(sp_rate_df, 'Cell Line', cell_line)
-        sp_rate_df = filter_data(sp_rate_df, 'ID', run_ids)
+        if 'All' not in run_ids:
+            sp_rate_df = filter_data(sp_rate_df, 'ID', run_ids)
         
         # Creating figures
         figures = {}
