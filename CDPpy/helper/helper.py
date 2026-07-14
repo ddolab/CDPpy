@@ -100,10 +100,21 @@ def check_key(df, key):
 ###########################################################################
 # Check Input File Path
 def input_path(file_name):
-    # Base directry where this file exits
+    # Allow file-like objects (e.g. streamlit uploads) to pass through directly.
+    if file_name is None:
+        raise ValueError("file_name cannot be None")
+
+    if hasattr(file_name, "read"):
+        return file_name
+
+    file_path = Path(file_name)
+    if file_path.is_absolute() or file_path.exists():
+        return str(file_path)
+
+    # Base directory where this file exists
     BASE_DIR = Path(__file__).resolve().parent
 
-    # Input directry path
+    # Input directory path
     INPUT_BASE = os.path.join(BASE_DIR.parent.parent, 'input_files')
 
     # Input file path

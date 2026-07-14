@@ -10,5 +10,8 @@
 .vscode/
 .idea/
 *.sublime-*
-
+output_files/
 *.png
+input_files/
+!input_files/Package_input_Template.xlsx
+!input_files/Package_input_Example.xlsx

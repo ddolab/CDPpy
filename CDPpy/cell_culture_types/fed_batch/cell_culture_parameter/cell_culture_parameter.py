@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+@dataclass
 class FedBatchParameters:
     '''Store key parameters for a fed-batch cell culture data processing.'''
     def __init__(self, 
@@ -7,11 +9,17 @@ class FedBatchParameters:
                  regression_method=['polynomial', 'rolling_window_polynomial'], 
                  polynomial_degreee=None,
                  rolling_polynomial_degree=None, rolling_polynomial_window=None) -> None:
-        '''
-        Attributes
-        ----------
-            
-        '''
+        """Initialize the fed-batch parameters.
+
+        Args:
+            cell_line_name (str): Cell line name
+            use_feed_concentration (bool): Whether to use feed concentration
+            use_concentration_after_feed (bool): Whether to use concentration after feeding
+            regression_method (list, optional): Regression methods to use. Defaults to ['polynomial', 'rolling_window_polynomial'].
+            polynomial_degreee (_type_, optional): Degree of the polynomial regression. Defaults to None.
+            rolling_polynomial_degree (_type_, optional): Degree of the rolling polynomial regression. Defaults to None.
+            rolling_polynomial_window (_type_, optional): Window size for the rolling polynomial regression. Defaults to None.
+        """
         self._cell_line_name = cell_line_name
         self._use_feed_conc = use_feed_concentration
         self._use_conc_after_feed = use_concentration_after_feed

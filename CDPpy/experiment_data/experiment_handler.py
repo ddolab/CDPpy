@@ -1,13 +1,22 @@
 import pandas as pd
+from dataclasses import dataclass
 
 from CDPpy.constants import CELL_LINE_COLUMN, ID_COLUMN, DATE_COLUMN, RUN_TIME_DAY_COLUMN, RUN_TIME_HOUR_COLUMN
 from CDPpy.constants.fed_batch.dict_key import EXP_DATA_KEY 
+
+@dataclass
 class ExperimentDataHandler:
-    '''
-    '''
+    """Handle the measured data for a specific cell line and cell line ID."""
     def __init__(self, cell_line_name, cell_line_id, data, cell_culture_type=None) -> None:
-        '''
-        '''
+        """
+        Initialize the experiment data handler.
+
+        Args:
+            cell_line_name (str): Name of the cell line.
+            cell_line_id (str): ID of the cell line.
+            data (dict): Dictionary containing the experiment data.
+            cell_culture_type (str, optional): Type of cell culture. Defaults to None.
+        """
         df = data[EXP_DATA_KEY].copy()
 
         # Check Cell Line name
@@ -24,11 +33,11 @@ class ExperimentDataHandler:
         self._measured_data = data_masked.reset_index(drop=True)
 
     def _preprocess(self):
-        '''data pre-processing.'''
+        """Perform data pre-processing."""
         self._calculate_run_time()
     
     def _calculate_run_time(self):
-        '''calcularate run time (day) and (hr).'''
+        """Calculate run time (day) and (hr)."""
         date = self._measured_data[DATE_COLUMN]
         date_time = pd.to_datetime(date)
         time_diff = date_time - date_time.iat[0]
@@ -41,12 +50,11 @@ class ExperimentDataHandler:
         self._run_time = run_time
     
     def get_measured_data(self):
-        '''get measured data.'''
+        """Return the measured data."""
         return self._measured_data
     
     def get_species(self, species='all'):
-        '''Return species object.
-        '''
+        """Return the species object."""
         spc = self._spc_dict
         key = species.lower()
         if key=='all':
