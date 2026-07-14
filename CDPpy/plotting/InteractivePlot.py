@@ -228,9 +228,9 @@ class InteractivePlotMixin:
 
         # Start the app
         if mode=='inline':
-            app.run_server(port=port, mode="inline")
+            app.run(port=port, mode="inline")
         else:
-            app.run_server(port=port)
+            app.run(port=port)
     
     def __set_exp_options(self, cl_chosen):
         '''Update expriment ID dropdown

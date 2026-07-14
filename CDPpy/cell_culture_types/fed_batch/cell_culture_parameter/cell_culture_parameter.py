@@ -17,8 +17,8 @@ class FedBatchParameters:
             use_concentration_after_feed (bool): Whether to use concentration after feeding
             regression_method (list, optional): Regression methods to use. Defaults to ['polynomial', 'rolling_window_polynomial'].
             polynomial_degreee (_type_, optional): Degree of the polynomial regression. Defaults to None.
-            rolling_polynomial_degree (_type_, optional): Degree of the rolling polynomial regression. Defaults to None.
-            rolling_polynomial_window (_type_, optional): Window size for the rolling polynomial regression. Defaults to None.
+            rolling_polynomial_degree (int, optional): Degree of the rolling polynomial regression. Defaults to None.
+            rolling_polynomial_window (int, optional): Window size for the rolling polynomial regression. Defaults to None.
         """
         self._cell_line_name = cell_line_name
         self._use_feed_conc = use_feed_concentration

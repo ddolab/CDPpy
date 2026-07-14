@@ -57,7 +57,8 @@ def split_df(df, target_columns) -> list:
     df_list = []
     for i in range(1, len(indices)):
         temp = df.iloc[1:, indices[i-1]:indices[i]]
-        temp.set_axis(df.iloc[0, indices[i-1]:indices[i]], axis=1, inplace=True)
+        # temp.set_axis(df.iloc[0, indices[i-1]:indices[i]], axis=1, inplace=True)
+        temp.columns = df.iloc[0, indices[i-1]:indices[i]]
         df_list.append(temp.reset_index(drop=True))
     return df_list
 
