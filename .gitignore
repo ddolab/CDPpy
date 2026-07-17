@@ -13,5 +13,7 @@
 output_files/
 *.png
 input_files/
+*xlsx
+*csv
 !input_files/Package_input_Template.xlsx
 !input_files/Package_input_Example.xlsx

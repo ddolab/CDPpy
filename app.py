@@ -1,4 +1,4 @@
-from CDPpy_agent.agent.agent import agent_loop
+from CDPpy_agent.agent.session import agent_chat
 
 if __name__ == "__main__":
-    agent_loop()
+    agent_chat()
