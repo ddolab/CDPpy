@@ -2,7 +2,6 @@ from pydantic_ai import RunContext
 from CDPpy_agent.agent.agent import CDPpy_agent
 from CDPpy import FedBatchCellCulture, FedBatchParameters
 from CDPpy.helper import input_path
-import tempfile
 import streamlit as st
 import os
 # from io import BytesIO
