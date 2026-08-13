@@ -6,13 +6,14 @@
 /ML_toolbox_slides/
 # Ignore environment-specific settings
 .env
+.venv
 # Ignore editor-specific files
 .vscode/
 .idea/
 *.sublime-*
-output_files/
+output_files/*
 *.png
-input_files/
+input_files/*
 tests/
 *xlsx
 *csv

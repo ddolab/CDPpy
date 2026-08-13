@@ -3,6 +3,7 @@ from CDPpy_agent.agent.agent import CDPpy_agent
 from CDPpy import FedBatchCellCulture, FedBatchParameters
 from CDPpy.helper import input_path
 import streamlit as st
+import pandas as pd
 import os
 # from io import BytesIO
 
@@ -17,7 +18,136 @@ def file_status(ctx: RunContext[dict]) -> str:
         return f"File '{ctx.deps['file_name']}' is currently loaded."
     else:
         return "No file has been uploaded yet. Please upload an Excel data file in the sidebar."
+    
+@CDPpy_agent.tool
+def retrive_cell_data_headers(ctx: RunContext[dict], category: str) -> str:
+    """Returns the dataframe headers in the cell_data dataset.
+    
+    cell_data is a dictionary of dataframes. The keys take the values of 'conc', 'cumulative', 'integral', 'growth_rate'.
+    This function takes category (which are one of the keys in cell_data), and returns the column names in the corresponding dataframe.
+    This tool is for the agent to understand the structure and to better query the cell data.
+    
+    Args:
+        category (str): Key in cell_data dictionary
+    
+    Returns:
+        List of column headers for dataframe in specified catagory
+    """
+    try:
+        CL_fed_batch = st.session_state.get("fed_batch_obj")
+    except:
+        try:
+            CL_fed_batch = ctx.deps.get("fed_batch_obj")
+        except Exception as e:
+            return f"Error accessing processed cell line object: {str(e)}"
+    if not CL_fed_batch:
+        return "Failed: No fed_batch_obj found in session dependencies."
+    cell_data = CL_fed_batch.get_cell_data()
+    try:
+        return f"In cell_data, category {category} has columns {list(cell_data[category].columns)}"
+    except Exception as e:
+        return "Unable to retrieve data from specified category {e}"
+    
+@CDPpy_agent.tool
+def retrive_metabolite_data_headers(ctx: RunContext[dict], category: str) -> str:
+    """Returns the dataframe headers in the metabolite_data dataset.
+    
+    metabolite_data is a dictionary of dataframes. The keys take the values of 'conc', 'cumulative', 'sp_rate'.
+    This function takes category (which are one of the keys in metabolite_data), and returns the column names in the corresponding dataframe.
+    This tool is for the agent to understand the structure and to better query the metabolite data.
 
+    Args:
+        category (str): Key in metabolite_data dictionary
+    
+    Returns:
+        List of column headers for dataframe in specified catagory
+    """
+    try:
+        CL_fed_batch = st.session_state.get("fed_batch_obj")
+    except:
+        try:
+            CL_fed_batch = ctx.deps.get("fed_batch_obj")
+        except Exception as e:
+            return f"Error accessing processed cell line object: {str(e)}"
+    if not CL_fed_batch:
+        return "Failed: No fed_batch_obj found in session dependencies."
+    metabolite_data = CL_fed_batch.get_metabolite_data()
+    try:
+        return f"In metabolite_data, category {category} has columns {list(metabolite_data[category].columns)}"
+    except Exception as e:
+        return "Unable to retrieve data from specified category {e}"
+
+@CDPpy_agent.tool
+def query_cell_data(
+    ctx: RunContext[dict], category: str, query_str: str, columns: list[str], store_as: str = "cell_subset"
+) -> str:
+    """Executes a Pandas query on cell_data and stores it under a key in memory.
+
+    Args:
+        category (str): Key in cell_data ('conc', 'cumulative', etc.)
+        query_str (str): Pandas query string for filtering
+        columns (list(str)): List of columns to keep after using query to filter dataset
+        store_as (str): Alias name to identify this filtered dataset in memory
+    """
+    
+    try:
+        try:
+            CL_fed_batch = st.session_state.get("fed_batch_obj")
+        except:
+            try:
+                CL_fed_batch = ctx.deps.get("fed_batch_obj")
+            except Exception as e:
+                return f"Error accessing processed cell line object: {str(e)}"
+        if not CL_fed_batch:
+            return "Failed: No fed_batch_obj found in session dependencies."
+        cell_data = CL_fed_batch.get_cell_data()[category]
+        filtered = cell_data.query(query_str)
+        
+        if "data_store" not in st.session_state:
+            st.session_state["data_store"] = {}
+
+        # Update the dictionary in session state
+        st.session_state["data_store"][store_as] = filtered[columns]
+
+        return f"Stored filtered cell_data '{category}' under alias '{store_as}' ({len(filtered)} rows)."
+    except Exception as e:
+        return f"Error executing cell query: {e}"
+
+@CDPpy_agent.tool
+def query_metabolite_data(
+    ctx: RunContext[dict], category: str, query_str: str, columns: list[str], store_as: str = "metabolite_subset"
+) -> str:
+    """Executes a Pandas query on metabolite_data and stores it under a key in memory (data_store).
+
+    Args:
+        category (str): Key in metabolite_data ('conc', 'cumulative', 'sp_rate')
+        query_str (str): Pandas query string for filtering
+        columns (list(str)): List of columns to keep after using query to filter dataset
+        store_as (str): Alias name to identify this filtered dataset in memory
+    """
+    
+    try:
+        try:
+            CL_fed_batch = st.session_state.get("fed_batch_obj")
+        except:
+            try:
+                CL_fed_batch = ctx.deps.get("fed_batch_obj")
+            except Exception as e:
+                return f"Error accessing processed cell line object: {str(e)}"
+        if not CL_fed_batch:
+            return "Failed: No fed_batch_obj found in session dependencies."
+        metabolite_data = CL_fed_batch.get_metabolite_data()[category]
+        filtered = metabolite_data.query(query_str)
+        
+        if "data_store" not in st.session_state:
+            st.session_state["data_store"] = {}
+
+        # Update the dictionary in session state
+        st.session_state["data_store"][store_as] = filtered[columns]
+        return f"Stored filtered metabolite_data '{category}' under alias '{store_as}' ({len(filtered)} rows)."
+    except Exception as e:
+        return f"Error executing metabolite query: {e}"
+    
 
 @CDPpy_agent.tool
 def get_dataset_characteristics(
@@ -143,6 +273,8 @@ def process_cell_line_data(
 
         # Save the processed object back into state so the "Save/Download" tool can find it
         st.session_state.fed_batch_obj = CL_fed_batch
+        st.session_state.cell_data = CL_fed_batch.get_cell_data()
+        st.session_state.metabolite_data = CL_fed_batch.get_metabolite_data()
 
         return (
             f"Successfully loaded and processed '{ctx.deps['file_name']}' "

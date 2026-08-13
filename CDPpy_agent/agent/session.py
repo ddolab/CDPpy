@@ -1,4 +1,3 @@
-import key_value
 import os
 import pandas as pd
 import streamlit as st
@@ -10,7 +9,7 @@ from CDPpy_agent.tools.data_handler import (
     process_cell_line_data,
     export_data_to_excel,
 )
-from CDPpy_agent.tools.plots import get_VCD_profile
+from CDPpy_agent.tools.plots import get_cell_profiles  # get_VCD_profile,
 from pydantic_ai import ModelResponse, ToolCallPart
 
 INPUT_FOLDER = "input_files"
@@ -55,6 +54,13 @@ def agent_chat():
         st.session_state.has_after_feed_data = False
     if "has_feed_data" not in st.session_state:
         st.session_state.has_feed_data = False
+    if "cell_data" not in st.session_state:
+        st.session_state.cell_data = None
+    if "metabolite_data" not in st.session_state:
+        st.session_state.metabolite_data = None
+
+    if "data_store" not in st.session_state:
+        st.session_state.data_store = {}
 
     # Render existing conversation history
     for msg in st.session_state.display_history:
@@ -94,6 +100,9 @@ def chat_with_agent():
                     ),
                     "conc_after_feed_data": st.session_state.get("has_after_feed_data"),
                     "conc_feed_data": st.session_state.get("has_feed_data"),
+                    "cell_data": st.session_state.get("cell_data"),
+                    "metabolite_data": st.session_state.get("metabolite_data"),
+                    "data_store": st.session_state.get("data_store"),
                 }
 
                 try:
@@ -139,6 +148,7 @@ def chat_with_agent():
                             plotly_fig, use_container_width=True, key=no_figures
                         )
                         history_payload["chart_json"] = plotly_fig
+                        no_figures += 1
 
                     st.session_state.display_history.append(history_payload)
 
