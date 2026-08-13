@@ -1,10 +1,15 @@
+import key_value
 import os
 import pandas as pd
 import streamlit as st
 import json
 import plotly.graph_objects as go
 from CDPpy_agent.agent.agent import CDPpy_agent
-from CDPpy_agent.tools.data_handler import initialize_fed_batch_parameters, process_cell_line_data, export_data_to_excel
+from CDPpy_agent.tools.data_handler import (
+    initialize_fed_batch_parameters,
+    process_cell_line_data,
+    export_data_to_excel,
+)
 from CDPpy_agent.tools.plots import get_VCD_profile
 from pydantic_ai import ModelResponse, ToolCallPart
 
@@ -13,9 +18,12 @@ os.makedirs(INPUT_FOLDER, exist_ok=True)
 OUTPUT_FOLDER = "output_files"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
+
 def agent_chat():
     st.title("CDPpy Agent")
-    st.caption("This agent can help with preparing cell culture datasets for analysis, and producing plots and reports based on the processed data.")
+    st.caption(
+        "This agent can help with preparing cell culture datasets for analysis, and producing plots and reports based on the processed data."
+    )
 
     if "message_history" not in st.session_state:
         st.session_state.message_history = []
@@ -28,10 +36,25 @@ def agent_chat():
         st.session_state.file_name = None
     if "local_file_path" not in st.session_state:
         st.session_state.local_file_path = None
+    if "file_detected" not in st.session_state:
+        st.session_state.file_detected = False
+    if "latest_excel_filename" not in st.session_state:
+        st.session_state.latest_excel_filename = None
+
     if "fed_batch_obj" not in st.session_state:
         st.session_state.fed_batch_obj = None
     if "fed_batch_param" not in st.session_state:
         st.session_state.fed_batch_param = None
+    if "cell_lines" not in st.session_state:
+        st.session_state.cell_lines = []
+    if "cell_line_exps" not in st.session_state:
+        st.session_state.cell_line_exps = {}
+    if "has_before_feed_data" not in st.session_state:
+        st.session_state.has_before_feed_data = False
+    if "has_after_feed_data" not in st.session_state:
+        st.session_state.has_after_feed_data = False
+    if "has_feed_data" not in st.session_state:
+        st.session_state.has_feed_data = False
 
     # Render existing conversation history
     for msg in st.session_state.display_history:
@@ -39,77 +62,57 @@ def agent_chat():
             if "content" in msg:
                 st.markdown(msg["content"])
             if "chart_json" in msg:
-                st.plotly_chart(
-                    msg["chart_json"],
-                    use_container_width=True
-                )
-
-    if "latest_excel_filename" not in st.session_state:
-        st.session_state.latest_excel_filename = None
+                st.plotly_chart(msg["chart_json"], use_container_width=True)
 
     chat_with_agent()
     sidebar_menu()
+
 
 def chat_with_agent():
     if user_input := st.chat_input("Ask me anything about your cell culture data..."):
         with st.chat_message("user"):
             st.markdown(user_input)
 
-        st.session_state.display_history.append({
-            "role": "user",
-            "content": user_input
-        })
+        st.session_state.display_history.append({"role": "user", "content": user_input})
 
+        no_figures = 0
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
-
-                current_deps = {
-                    "params": st.session_state.get("fed_batch_param"),
+                CDPdataset = {
                     "file_name": st.session_state.get("file_name"),
                     "local_file_path": st.session_state.get("local_file_path"),
+                    "file_detected": st.session_state.get("file_detected"),
+                    "latest_excel_filename": st.session_state.get(
+                        "latest_excel_filename"
+                    ),
                     "fed_batch_obj": st.session_state.get("fed_batch_obj"),
-                    "latest_excel_filename": st.session_state.get("latest_excel_filename"),
+                    "fed_batch_param": st.session_state.get("fed_batch_param"),
+                    "cell_lines": st.session_state.get("cell_lines"),
+                    "cell_line_exps": st.session_state.get("cell_line_exps"),
+                    "conc_before_feed_data": st.session_state.get(
+                        "has_before_feed_data"
+                    ),
+                    "conc_after_feed_data": st.session_state.get("has_after_feed_data"),
+                    "conc_feed_data": st.session_state.get("has_feed_data"),
                 }
 
                 try:
                     result = CDPpy_agent.run_sync(
                         user_input,
-                        deps=current_deps,
+                        deps=CDPdataset,
                         message_history=(
                             st.session_state.message_history
                             if st.session_state.message_history
                             else None
-                        )
+                        ),
                     )
 
                     # PydanticAI conversation history
                     st.session_state.message_history = result.all_messages()
                     response_text = result.output
 
-                    # # Find Plotly figure returned by a tool
-                    # plotly_fig = None
-
-                    # for message in result.new_messages():
-                    #     for part in message.parts:
-                    #         if (
-                    #             hasattr(part, "content")
-                    #             and isinstance(part.content, str)
-                    #             and part.content.startswith("PLOTLY_JSON:")
-                    #         ):
-                    #             json_str = part.content.removeprefix(
-                    #                 "PLOTLY_JSON:"
-                    #             )
-                    #             plotly_fig = go.Figure(
-                    #                 json.loads(json_str)
-                    #             )
-
-                    # # Display chart
-                    # if plotly_fig is not None:
-                    #     st.plotly_chart(
-                    #         plotly_fig,
-                    #         use_container_width=True
-                    #     )
-                    #     history_payload["chart_json"] = plotly_fig
+                    # Find Plotly figure returned by a tool
+                    plotly_fig = None
 
                     # Display text
                     st.markdown(response_text)
@@ -120,26 +123,45 @@ def chat_with_agent():
                         "content": response_text,
                     }
 
-                    st.session_state.display_history.append(
-                        history_payload
-                    )
+                    for message in result.new_messages():
+                        for part in message.parts:
+                            if (
+                                hasattr(part, "content")
+                                and isinstance(part.content, str)
+                                and part.content.startswith("PLOTLY_JSON:")
+                            ):
+                                json_str = part.content.removeprefix("PLOTLY_JSON:")
+                                plotly_fig = go.Figure(json.loads(json_str))
+
+                    # Display chart
+                    if plotly_fig is not None:
+                        st.plotly_chart(
+                            plotly_fig, use_container_width=True, key=no_figures
+                        )
+                        history_payload["chart_json"] = plotly_fig
+
+                    st.session_state.display_history.append(history_payload)
 
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
 
+
 def sidebar_menu():
     with st.sidebar:
         st.header("Data files")
-        
+
         uploaded_file = st.file_uploader(
-            "Upload Cell Culture Data File", 
+            "Upload Cell Culture Data File",
             type=["xlsx", "xls"],
             help="Upload your raw cell culture data here. Make sure that the format follows the template!.",
-            key="uploaded_file_uploader"
+            key="uploaded_file_uploader",
         )
 
         if uploaded_file is not None:
             st.session_state.uploaded_file = uploaded_file
+            st.session_state.file_detected = True
+        else:
+            st.session_state.file_detected = False
 
         template_path = "input_files/Package_input_Template.xlsx"
 
@@ -150,11 +172,11 @@ def sidebar_menu():
                     data=file,
                     file_name="CDPpy_Template.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
+                    use_container_width=True,
                 )
         else:
             st.error("Template file not found in repository!")
-        
+
         if uploaded_file is not None:
             try:
                 # Store dataframe under distinct session key to avoid overwriting file object
@@ -168,29 +190,30 @@ def sidebar_menu():
                     f.write(uploaded_file.getbuffer())
                 st.session_state.local_file_path = local_file_path
                 st.session_state.file_name = uploaded_file.name
-        
+
             except Exception as e:
                 st.error(f"Error reading/saving file: {e}")
-        
+
         st.subheader("Exports")
         show_output_files()
 
+
 def show_output_files():
     folder_path = OUTPUT_FOLDER
-    files = [f for f in os.listdir(folder_path) if f.endswith(('.xlsx', '.xls'))]
-    
+    files = [f for f in os.listdir(folder_path) if f.endswith((".xlsx", ".xls"))]
+
     if not files:
         st.info("No compiled reports found. Ask the agent to export your data!")
         return
 
     st.write(f"**Available Reports ({len(files)}):**")
-    
+
     for filename in files:
         file_path = os.path.join(folder_path, filename)
         try:
             with open(file_path, "rb") as file_data:
                 file_bytes = file_data.read()
-            
+
             col_download, col_delete = st.columns([3, 1])
 
             with col_download:
@@ -200,11 +223,16 @@ def show_output_files():
                     file_name=filename,
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True,
-                    key=f"dl_btn_{filename}"
+                    key=f"dl_btn_{filename}",
                 )
 
             with col_delete:
-                if st.button("🗑️", key=f"del_btn_{filename}", use_container_width=True, help=f"Delete {filename}"):
+                if st.button(
+                    "🗑️",
+                    key=f"del_btn_{filename}",
+                    use_container_width=True,
+                    help=f"Delete {filename}",
+                ):
                     os.remove(file_path)
                     st.toast(f"Deleted {filename} successfully!")
                     st.rerun()
