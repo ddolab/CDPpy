@@ -1,203 +1,131 @@
-from sklearn.decomposition import PCA
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 import itertools
-import matplotlib.pyplot as plt
 
-def fit_pca(X, n_components, session_state=None):
-    """
-    Fits PCA and stores model in session state (if provided).
-    """
+from numpy.ma.extras import average
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.decomposition import PCA as _PCA_for_variance
+from sklearn.model_selection import train_test_split, KFold
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.pipeline import make_pipeline
+from sklearn.linear_model import LinearRegression, Lasso
+import plotly.express as px
+from typing import List, Literal, Optional
+from pydantic_ai import RunContext
+from CDPpy_agent.agent.agent import CDPpy_agent
+from pydantic import BaseModel, Field
+import streamlit as st
+import threading
+import pandas as pd
 
-    pca = PCA(n_components=n_components)
-    pca.fit(X)
+@CDPpy_agent.tool
+def pca_analysis(ctx: RunContext[dict], n_components = 3)-> str:
+    """Performs PCA analysis on the dataset. The dataset is already flattened (i.e. pivoted by time) and normalized by feature.
 
-    result = {
-        "model": pca,
-        "explained_variance_ratio": pca.explained_variance_ratio_,
-        "explained_variance_total": float(sum(pca.explained_variance_ratio_)),
-        "n_components": n_components
-    }
-
-    # optional session persistence
-    if session_state is not None:
-        session_state["pca_model"] = pca
-        session_state["pca_n_components"] = n_components
-
-    return result
-
-def transform_pca(X, pca_model=None, session_state=None):
-    """
-    Projects data into PCA space using stored or provided model.
-    """
-
-    if pca_model is None and session_state is not None:
-        pca_model = session_state.get("pca_model")
-
-    if pca_model is None:
-        raise ValueError("No PCA model provided or found in session state.")
-
-    projected = pca_model.transform(X)
-
-    return {
-        "projected_data": projected,
-        "original_shape": X.shape,
-        "projected_shape": projected.shape
-    }
-
-def get_pca_variance(pca_model=None, session_state=None):
-    """
-    Returns variance diagnostics for current PCA model.
-    """
-
-    if pca_model is None and session_state is not None:
-        pca_model = session_state.get("pca_model")
-
-    if pca_model is None:
-        raise ValueError("No PCA model available.")
-
-    return {
-        "explained_variance_ratio": pca_model.explained_variance_ratio_,
-        "total_explained_variance": float(sum(pca_model.explained_variance_ratio_))
-    }
-
-def get_pca_loadings(pca_model, feature_names):
-    """
-    Computes PCA loadings for each feature and component.
+    The function returns the explained variance from the specified number of PCA components.
+    Additionally, the PCA projected dataset is stored in the streamlit session state.
+    
+    Args:
+        n_components (int, optional): Number of PCA components for analysis. Defaults to 3.
 
     Returns:
-        DataFrame: rows = features, cols = PCs
+        str: Returns string that tells you what the explained variance is.
     """
+    try:
+        process_param_data = st.session_state.get("ml_ready_dataset")
+    except:
+        try:
+            process_param_data = ctx.deps.get("ml_ready_dataset")
+        except Exception as e:
+            return f"Error accessing processed dataset: {str(e)}"
+    # if not process_param_data:
+    #     return "Failed: No ml_ready_dataset found in session dependencies."
+    # n_components = 30
+    scaler = StandardScaler() 
+    norm_dataset = scaler.fit_transform(process_param_data)
+    pca = PCA(n_components)
+    pca.fit(norm_dataset)
+    # print(pca.explained_variance_ratio_)
+    # print("Explained variance = "+ str(sum(pca.explained_variance_ratio_)))
+    projected_data = pca.transform(norm_dataset)
+    # print("Shape of Original Dataset:", process_param_data.shape)
+    # print("Shape after PCA:", projected_data.shape)
+    st.session_state.pca_obj = pca
+    st.session_state.projected_data = projected_data
 
-    # sklearn stores eigenvectors in components_
-    # shape: (n_components, n_features)
-    components = pca_model.components_
+    return f"Explained variance with {n_components} = {sum(pca.explained_variance_ratio_)}, component variance ratio by component {pca.explained_variance_ratio_}"
 
-    # loadings: feature contribution magnitude
-    # transpose -> (n_features, n_components)
-    loadings = components.T
+@CDPpy_agent.tool
+def get_pca_loadings(ctx: RunContext[dict], pca_component: int = 1, top_n:int = 10)-> str:
+    """_summary_
 
-    loading_df = pd.DataFrame(
-        loadings,
-        index=feature_names,
-        columns=[f"PC{i+1}" for i in range(components.shape[0])]
-    )
+    Args:
+        pca_component (int, optional): PC component to analyze loadings. Defaults to 1.
+        top_n (int, optional): Top N loadings to show on plot.  Defaults to 10.
 
-    return loading_df
-
-def rank_features_by_loading(loadings_df, pc="PC1", top_k=10):
-    """
-    Ranks features by absolute loading magnitude for a given PC.
-    Returns a DataFrame with feature names and their loadings.
-    """
-
-    if pc not in loadings_df.columns:
-        raise ValueError(f"{pc} not found in loadings")
-
-    ranked = (
-        loadings_df[pc]
-        .abs()
-        .sort_values(ascending=False)
-        .head(top_k)
-    )
-
-    return pd.DataFrame({
-        "feature": ranked.index,
-        "loading": loadings_df.loc[ranked.index, pc],
-        "abs_loading": ranked.values
-    })
-
-
-def plot_explained_variance_curve(pca_model):
-    """
-    Returns data structured for plotting explained variance curve.
     Returns:
-        DataFrame with columns: PC, explained_variance, cumulative_variance
+        str: Returns Plotly plot as JSON
     """
+    try:
+        pca = st.session_state.get("pca_obj")
+        process_param_data = st.session_state.get("ml_ready_dataset")
+    except:
+        try:
+            process_param_data = ctx.deps.get("ml_ready_dataset")
+            pca = ctx.deps.get("pca_obj")
+        except Exception as e:
+            return f"Error accessing processed dataset: {str(e)}"
+    # if not process_param_data:
+    #     return "Failed: No ml_ready_dataset found in session dependencies."
 
-    explained = pca_model.explained_variance_ratio_
-    cumulative = np.cumsum(explained)
+    flattened_features = process_param_data.columns
+    # 1. Compute loadings matrix
+    loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+    # n_features = 10
+    # pca_component = 1
+    # 2. Extract PC1 loadings into a DataFrame
+    pc1_series = pd.Series(loadings[:, pca_component-1], index=flattened_features)
 
-    df = pd.DataFrame({
-        "PC": np.arange(1, len(explained) + 1),
-        "explained_variance": explained,
-        "cumulative_variance": cumulative
-    })
 
-    return df
+    # 3. Get top 10 features by magnitude and preserve original directions
+    top10_idx = pc1_series.abs().nlargest(top_n).index
+    top10_df = pc1_series.loc[top10_idx].reset_index()
+    top10_df.columns = ['Feature', 'Loading']
 
-def prepare_pca_2d_projection_plot_data(
-    projected_data,
-    titer_category,
-    pca_model,
-    max_components=None
-) -> None:
-    """
-    Prepares all pairwise 2D PCA projections for visualization.
-    """
+    # Add direction label for distinct coloring and sort for plotting
+    top10_df['Direction'] = np.where(top10_df['Loading'] >= 0, 'Positive', 'Negative')
+    top10_df = top10_df.sort_values('Loading', ascending=True)
 
-    projected_data = np.array(projected_data)
-    titer_category = np.array(titer_category)
-
-    n_components = projected_data.shape[1]
-
-    if max_components is not None:
-        n_components = min(max_components, n_components)
-
-    pairs = list(itertools.combinations(range(n_components), 2))
-
-    fig, axs = plt.subplots(
-        1,
-        len(pairs),
-        figsize=(5 * len(pairs), 5)
+    # 4. Create Plotly figure
+    fig = px.bar(
+        top10_df,
+        x='Loading',
+        y='Feature',
+        orientation='h',
+        color='Direction',
+        color_discrete_map={'Positive': '#1f77b4', 'Negative': '#ff7f0e'},
+        title=f'Top {top_n} Features by PC{pca_component} Loading Magnitude',
+        text_auto='.3f'  # Displays rounded loading values directly on the bars
     )
 
-    # handle single plot edge case
-    if len(pairs) == 1:
-        axs = [axs]
+    # 5. Styling & layout adjustments
+    fig.add_vline(x=0, line_dash='dash', line_color='black', line_width=1)
 
-    top_mask = (titer_category == 1)
-    mid_mask = (titer_category == 0)
-    bot_mask = (titer_category == 2)
+    fig.update_layout(
+        xaxis_title='PC1 Loading',
+        yaxis_title='Feature',
+        showlegend=False,
+        template='plotly_white',
+        height=500,
+        width=800
+    )
 
-    for idx, (i, j) in enumerate(pairs):
+    # fig.show()
+#     plt.tight_layout()
+# plt.show()
 
-        ax = axs[idx]
-
-        ax.scatter(
-            projected_data[top_mask, i],
-            projected_data[top_mask, j],
-            c="blue",
-            marker=".",
-            label="Top 20%"
-        )
-
-        ax.scatter(
-            projected_data[mid_mask, i],
-            projected_data[mid_mask, j],
-            c="grey",
-            marker=".",
-            label="Middle 60%"
-        )
-
-        ax.scatter(
-            projected_data[bot_mask, i],
-            projected_data[bot_mask, j],
-            c="red",
-            marker=".",
-            label="Bottom 20%"
-        )
-
-        ax.set_xlabel(
-            f"PC{i+1} ({pca_model.explained_variance_ratio_[i]*100:.2f}%)"
-        )
-        ax.set_ylabel(
-            f"PC{j+1} ({pca_model.explained_variance_ratio_[j]*100:.2f}%)"
-        )
-
-        ax.legend()
-
-    fig.suptitle("PCA Projections")
-    fig.tight_layout()
-
-    plt.show()
+    return f"PLOTLY_JSON:{fig.to_json()}"

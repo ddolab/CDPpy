@@ -9,6 +9,7 @@ from CDPpy_agent.tools.data_handler import (
     process_cell_line_data,
     export_data_to_excel,
 )
+from CDPpy_agent.tools.pca_funcs import pca_analysis, get_pca_loadings 
 from CDPpy_agent.tools.plots import get_cell_profiles  # get_VCD_profile,
 from pydantic_ai import ModelResponse, ToolCallPart
 
@@ -62,6 +63,11 @@ def agent_chat():
     if "data_store" not in st.session_state:
         st.session_state.data_store = {}
 
+    if "ml_ready_dataset" not in st.session_state:
+        st.session_state.ml_ready_dataset = None
+    if "pca_obj" not in st.session_state:
+        st.session_state.pca_obj = None
+
     # Render existing conversation history
     for msg in st.session_state.display_history:
         with st.chat_message(msg["role"]):
@@ -103,6 +109,9 @@ def chat_with_agent():
                     "cell_data": st.session_state.get("cell_data"),
                     "metabolite_data": st.session_state.get("metabolite_data"),
                     "data_store": st.session_state.get("data_store"),
+
+                    "ml_ready_dataset": st.session_state.get("ml_ready_dataset"),
+                    "pca_obj": st.session_state.get("pca_obj"),
                 }
 
                 try:

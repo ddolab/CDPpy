@@ -276,6 +276,60 @@ def process_cell_line_data(
         st.session_state.cell_data = CL_fed_batch.get_cell_data()
         st.session_state.metabolite_data = CL_fed_batch.get_metabolite_data()
 
+        # Preprocess data for ML analysis
+        try:
+            processed_data = CL_fed_batch.get_processed_data().copy()
+            columns = processed_data.columns.to_list()
+            col_name = columns[0]
+            for i,column in enumerate(columns):
+                if column:
+                    col_name = column
+                else:
+                    columns[i] = col_name
+            columns
+            import pandas as pd
+            dataset = processed_data
+            dataset.columns = columns
+            dataset.columns = pd.MultiIndex.from_arrays([processed_data.columns, processed_data.iloc[0].values])
+
+            dataset = dataset.iloc[1:]
+            dataset = dataset.loc[:, dataset.columns.get_level_values(0) != 'SP. Rate Two-Point Calculation']
+            dataset = dataset.loc[:, dataset.columns.get_level_values(0) != 'Concentration After Feeding']
+            dataset = dataset.loc[:, dataset.columns.get_level_values(0) != 'SP. Rate Polynomial Regression']
+            dataset = dataset.loc[:, dataset.columns != ('SP. Rate Rolling Window Polynomial Regression', 'Run Time (day)')]
+            dataset = dataset.loc[:, dataset.columns != ('SP. Rate Rolling Window Polynomial Regression', 'Run Time (hr)')]
+            # processed_data = processed_data.loc[:, processed_data.columns.get_level_values(0) != 'SP. Rate Polynomial Regression']
+            new_cols = []
+            for old_col in list(dataset.columns):
+                # print(old_col[0])
+                if old_col[0] == 'Experiment Data':
+                    new_cols.append(old_col[1])
+                elif old_col[0] == 'Concentration Before Feeding':
+                    new_cols.append(old_col[1])
+                elif old_col[0] == 'Cumulative Consumption/Production':
+                    new_cols.append("cum" + old_col[1])
+                elif old_col[0] == 'SP. Rate Rolling Window Polynomial Regression':
+                    new_cols.append("q" + old_col[1])
+
+            dataset.columns = new_cols
+            dataset = dataset.drop(columns=["Date (MM/DD/YY H:MM:SS AM/PM)", "Name",  "Sample #", "IgG (mg/L)", "Run Time (day)"])
+            dataset.dropna(axis=1, how='all', inplace=True)
+            dataset.index = dataset['Cell Line'].astype(str) + '_' + dataset['ID'].astype(str)
+            dataset = dataset.drop(columns=['Cell Line', 'ID'])
+
+            features = list(dataset.columns)
+            process_param_data = dataset.pivot(columns='Run Time (hr)', values=features)
+            flattened_features = process_param_data.columns.to_list()
+            run_ids = process_param_data.index
+            for i in range(len(flattened_features)):
+                flattened_features[i] = flattened_features[i][0] + " ("+str(flattened_features[i][1])+" hr)"
+            process_param_data.columns = flattened_features
+
+            st.session_state.ml_ready_dataset = process_param_data
+
+        except Exception as e:
+            return f"Exception when processing data for ML analysis : {e}"
+
         return (
             f"Successfully loaded and processed '{ctx.deps['file_name']}' "
             f"for cell line(s) '{ctx.deps['cell_lines']}'."
@@ -285,7 +339,7 @@ def process_cell_line_data(
         return f"Error during data processing: {str(e)}"
 
 
-@CDPpy_agent.tool
+@CDPpy_agent.tool   
 def export_data_to_excel(
     ctx: RunContext[dict], output_filename: str = "processed_data_export.xlsx"
 ) -> str:
